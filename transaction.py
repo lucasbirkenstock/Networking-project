@@ -6,7 +6,6 @@ class Transaction:
         self.payee1 = payee1
         self.payee1_amnt = payee1_amnt
         self.status = status
-        if(payee2):
-            self.payee2 = payee2
-            self.payee2_amnt = payee2_amnt
+        self.payee2 = payee2
+        self.payee2_amnt = payee2_amnt
 

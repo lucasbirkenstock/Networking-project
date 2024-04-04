@@ -5,23 +5,19 @@ import sys
 import copy
 import pickle
 
-def authenticate():
-    global curr_user
-    global authenticated
-    global curr_balance
-    global user_transactions
+def send_and_recieve(req):
+    clientSocket.sendto(pickle.dumps(req), (serverName, serverPort))
+    res, serverAddress = clientSocket.recvfrom(2048)
+    return pickle.loads(res)
 
+def authenticate():
+    global curr_user, authenticated, curr_balance, user_transactions
     username = input('Please enter username: ')
     password = input('Please enter password: ')
-    auth_info = {"type": "authentication",
+    req = {"type": "authentication",
                "username": username,
                "password": password}
-
-    req = pickle.dumps(auth_info)
-    clientSocket.sendto(req, (serverName, serverPort))
-
-    res, serverAddress = clientSocket.recvfrom(2048)
-    res = pickle.loads(res)
+    res = send_and_recieve(req)
 
     if res["authenticated"] == "yes":
         curr_user = username
@@ -29,11 +25,9 @@ def authenticate():
         authenticated = True
         curr_balance = res["balance"]
         user_transactions = res["transactions"]
-        print(f"Balance = {curr_balance}")
         print_transactions()
     else:
         print("INVALID CREDENTIALS...\n")
-
         while 1:
             print("(1) Try again")
             print("(2) Quit")
@@ -52,6 +46,7 @@ def menu():
     print("(2) Fetch and display the list of transactions.")
     print("(3) Quit the program.")
     choice = input("Please enter choice: ")
+
     if(choice == "1"):
         pay()
     elif(choice == "2"):
@@ -93,10 +88,7 @@ def pay():
     user_transactions.append(tx)
     req = {"type": "transaction",
            "transaction": tx}
-
-    clientSocket.sendto(pickle.dumps(req), (serverName, serverPort))
-    res, serverAddress = clientSocket.recvfrom(2048)
-    res = pickle.loads(res)
+    res = send_and_recieve(req)
 
     if(res["status"] == 2):
         print("Payment success!")
@@ -127,11 +119,15 @@ def get_tx():
     global user_transactions
     req = {"type": "get_tx",
            "username": curr_user}
-    clientSocket.sendto(pickle.dumps(req), (serverName, serverPort))
-    res, serverAddress = clientSocket.recvfrom(2048)
-    res = pickle.loads(res)
+    res = send_and_recieve(req)
+
     curr_balance = res["balance"]
     user_transactions = res["tx_list"] + user_transactions
+    dedup_tx_list()
+    print_transactions()
+
+def dedup_tx_list():
+    global user_transactions
     new_list = []
     for tx in user_transactions:
         found = False
@@ -143,14 +139,14 @@ def get_tx():
             new_list.append(tx)
     user_transactions = new_list
 
-    print(f"Balance: {curr_balance}")
-    print_transactions()
-
 def print_transactions():
+    print(f"Balance: {curr_balance}")
     print("{:<10} {:<10} {:<10} {:<10} {:<12} {:<14} {:<10} {:<12}".format("Id", "Status", "Payer", "Amount", "Payee1", "Payee1 Amnt", "Payee2", "Payee2 Amnt"))
     print("----------------------------------------------------------------------------------------------")
     for tx in user_transactions:
         print("{:<10} {:<10} {:<10} {:<10} {:<12} {:<14} {:<10} {:<12}".format(tx.id, tx.status, tx.payer, tx.amount, tx.payee1, tx.payee1_amnt, tx.payee2, tx.payee2_amnt))
+
+
 
 serverName = 'localhost'
 serverPort = 12000

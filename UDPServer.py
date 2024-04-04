@@ -15,14 +15,13 @@ users = {'A': User('A', 'A', 10),
          'C': User('C', 'C', 10),
          'D': User('D', 'D', 10),}
 
-
-
 transactions = []
 
 serverPort = 12000
 serverSocket = socket(AF_INET, SOCK_DGRAM)
 serverSocket.bind(('', serverPort))
 print ('The server is ready to receive')
+
 while 1:
     req, clientAddress = serverSocket.recvfrom(2048)
     req = pickle.loads(req)
